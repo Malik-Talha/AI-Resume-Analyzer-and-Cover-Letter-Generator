@@ -18,7 +18,7 @@ cover letter; not other comments please. Start from the main body (dont use any 
 
 WRITE_COVER_LETTER = ChatPromptTemplate.from_messages([
     ("system", __write_cover_letter),
-    ("human", "write a powerful cover letter for me to get the role for the following job. Write the cover letter that shows me {mode}.\n"
+    ("human", "write a powerful cover letter for me to get the role for the following job. Write the cover letter that shows me {mode} (the tone of the cover letter).\n"
     "My Resume/CV:\n{resume_data}\n\nThe job I'm applying on:\n{job_desc}")
 ])
 #************************************
