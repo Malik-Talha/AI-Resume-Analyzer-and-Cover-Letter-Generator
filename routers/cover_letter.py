@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/cover-letter",
-    # tags="Cover-Letter"
+    tags=["Cover Letter"]
 )
 
 
