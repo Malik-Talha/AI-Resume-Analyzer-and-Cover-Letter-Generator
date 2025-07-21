@@ -34,9 +34,9 @@ def root():
     return {"message": "welcome to the root"}
 
 
-@app.post("/write_cover_letter")
+@app.post("/cover-letter/resume")
 # async def analyze_resume(job_description: JobDescription, tone: Tone, resume: UploadFile):
-async def analyze_resume(job_title: str, job_description: str, tone: Tone, resume: UploadFile):
+async def analyze_resume_and_write_cover_letter(job_title: str, job_description: str, tone: Tone, resume: UploadFile):
     
     # extract resume text
     text = await extract_pdf(resume)
@@ -56,6 +56,24 @@ async def analyze_resume(job_title: str, job_description: str, tone: Tone, resum
         "resume_data": resume_data.model_dump(),
         # "job_desc": job_description.model_dump(),
         "job_desc": {"job_title": job_title, "job_description": job_description},
+    })
+    
+    logger.info("Cover Letter written Successfully!")
+    # return the cover letter
+    return {"cover_letter": cover_letter}
+
+
+@app.post("/cover-letter/form")
+def write_cover_letter_from_form(profile: ResumeData, job_description: JobDescription, tone: Tone):
+    """ write cover letter by analyzing experience and job description from a form """
+
+    # write a cover letter using an LLM chain
+    logger.info("Writing the cover letter using the LLM Chain...")
+    cover_writer: Runnable = get_cover_writer_chain()
+    cover_letter: str = cover_writer.invoke({
+        "mode": tone,
+        "resume_data": profile.model_dump(),
+        "job_desc": job_description.model_dump(),
     })
     
     logger.info("Cover Letter written Successfully!")
