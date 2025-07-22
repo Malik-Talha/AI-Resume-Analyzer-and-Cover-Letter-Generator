@@ -76,10 +76,12 @@ event.preventDefault(); // Prevent default form submission
 const formData = new FormData(manualResumeForm);
 resumeData = {
     type: 'manual',
-    name: formData.get('name'),
-    experience: formData.get('experience'),
-    skills: formData.get('skills'),
-    projects: formData.get('projects')
+    profile: {
+        name: formData.get('name'),
+        experience: formData.get('experience'),
+        skills: formData.get('skills'),
+        projects: formData.get('projects')
+    }
 };
 console.log('Manual resume data:', resumeData);
 showSection(jobDetailsSection);
@@ -132,12 +134,14 @@ try {
             headers: {
                 "Content-Type": "application/json",
             },
+            
             body: JSON.stringify({
-                profile: resumeData,
+                profile: resumeData.profile,
                 job_description: {
                     job_title: jobTitle,
                     job_requirements: jobDescription,
                 },
+                tone: tone.value,
             }),
         });
     }

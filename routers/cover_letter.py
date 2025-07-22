@@ -2,7 +2,7 @@ from fastapi import APIRouter, Form, File, UploadFile, status, HTTPException
 
 from langchain_core.runnables import Runnable
 
-from data_models.models import ResumeData, JobDescription, Tone
+from data_models.models import ResumeData, ResumeForm, Tone
 from services.pdf_service import extract_pdf
 from services.ai.ai_service import get_resume_extraction_chain, get_cover_writer_chain
 
@@ -71,16 +71,16 @@ async def analyze_resume_and_write_cover_letter(
 
 
 @router.post("/form")
-def write_cover_letter_from_form(profile: ResumeData, job_description: JobDescription, tone: Tone):
+def write_cover_letter_from_form(resume_form: ResumeForm):
     """ write cover letter by analyzing experience and job description from a form """
 
     # write a cover letter using an LLM chain
     logger.info("Writing the cover letter using the LLM Chain...")
     cover_writer: Runnable = get_cover_writer_chain()
     cover_letter: str = cover_writer.invoke({
-        "mode": tone,
-        "resume_data": profile.model_dump(),
-        "job_desc": job_description.model_dump(),
+        "mode": resume_form.tone,
+        "resume_data": resume_form.profile.model_dump(),
+        "job_desc": resume_form.job_description.model_dump(),
     })
     
     logger.info("Cover Letter written Successfully!")
