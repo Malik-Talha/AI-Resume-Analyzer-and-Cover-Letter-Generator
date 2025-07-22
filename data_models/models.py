@@ -6,8 +6,8 @@ class ResumeData(BaseModel):
 
     name: str = Field(description="Name of the candidate")
     experience: str = Field(description="Experience of the candidate e.g. years, domain etc. Extract COMPLETE experience.")
-    skills: list[str] = Field(description="Skills mentioned in the resume of the candidate")
-    projects: list[str] = Field(description="projects that the candidate has worked on, if present.")
+    skills: str = Field(description="Skills mentioned in the resume of the candidate")
+    projects: str = Field(description="projects that the candidate has worked on, if present.")
 
 # {
 
@@ -24,7 +24,7 @@ class ResumeData(BaseModel):
 class JobDescription(BaseModel):
     """ Job Description the candidate is applying on """
     job_title: str = Field(description="title of the job/position")
-    job_requirements: list[str] = Field(description="Any requirements to get the job e.g. skills, experience")
+    job_requirements: str = Field(description="Any requirements to get the job e.g. skills, experience")
 
 class Tone(str, Enum):
     confident = "Confident"
@@ -33,3 +33,10 @@ class Tone(str, Enum):
     enthusiastic = "Enthusiastic"
     humble = "Humble"
     direct = "Direct"
+
+
+
+class ResumeForm(BaseModel):
+    profile: ResumeData
+    job_description: JobDescription
+    tone: Tone
