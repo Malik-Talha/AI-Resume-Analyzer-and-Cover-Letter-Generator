@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cover Letter Generator</title>
+    <!-- Tailwind CSS CDN for easy styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/style.css">
+    
+</head>
+<body>
+    <div class="container">
+        <!-- Section 1: Welcome and Option Selection -->
+        <div id="welcome-section" class="section active">
+            <h1 class="text-4xl font-extrabold text-gray-900 mb-6">Welcome to Your AI Cover Letter Generator!</h1>
+            <p class="text-lg text-gray-600 mb-8">Choose how you'd like to provide your resume details:</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div id="upload-resume-card" class="card">
+                    <div class="card-icon">📄</div>
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-2">Upload Resume</h2>
+                    <p class="text-gray-600">Upload your resume as a PDF file for quick processing.</p>
+                </div>
+                <div id="fill-form-card" class="card">
+                    <div class="card-icon">📝</div>
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-2">Fill Form Manually</h2>
+                    <p class="text-gray-600">Enter your details manually through a simple form.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Resume Upload or Manual Form -->
+        <div id="resume-input-section" class="section">
+            <h2 class="text-3xl font-bold text-gray-900 mb-6">Provide Your Resume Details</h2>
+
+            <!-- Resume Upload Sub-section -->
+            <div id="upload-resume-sub-section" class="hidden">
+                <label for="resume-file" class="block text-gray-700 text-sm font-bold mb-2">Upload PDF Resume:</label>
+                <input type="file" id="resume-file" accept=".pdf" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"/>
+                <button id="upload-resume-btn" class="btn-primary mt-4">Next: Job Details</button>
+            </div>
+
+            <!-- Manual Form Sub-section -->
+            <div id="manual-form-sub-section" class="hidden text-left">
+                <form id="manual-resume-form">
+                    <label for="name">Name:</label>
+                    <input type="text" id="name" name="name" placeholder="John Doe" required>
+
+                    <label for="experience">Experience (e.g., 5 years as Software Engineer):</label>
+                    <textarea id="experience" name="experience" placeholder="Summarize your work experience..." required></textarea>
+
+                    <label for="skills">Skills (comma-separated):</label>
+                    <input type="text" id="skills" name="skills" placeholder="Python, JavaScript, AWS, SQL" required>
+
+                    <label for="projects">Projects (brief descriptions):</label>
+                    <textarea id="projects" name="projects" placeholder="Describe key projects and your role..." required></textarea>
+
+                    <button type="submit" class="btn-primary mt-4 w-full">Next: Job Details</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Section 3: Job Details Input -->
+        <div id="job-details-section" class="section">
+            <h2 class="text-3xl font-bold text-gray-900 mb-6">Tell Us About the Job</h2>
+            <form id="job-details-form" class="text-left">
+
+                <label for="tone">Cover Letter Tone:</label>
+                    <select name="tone" id="tone" single>
+                    <option value="Confident">Confident</option>
+                    <option value="Professional">Professional</option>
+                    <option value="Enthusiastic">Enthusiastic</option>
+                    <option value="Creative">Creative</option>
+                    <option value="Humble">Humble</option>
+                    <option value="Direct">Direct</option>
+                    </select>
+
+                <label for="job-title">Job Title:</label>
+                <input type="text" id="job-title" name="job-title" placeholder="Software Engineer" required>
+
+                <label for="job-description">Job Description:</label>
+                <textarea id="job-description" name="job-description" placeholder="Paste the full job description here..." required></textarea>
+
+                <button type="submit" class="btn-primary mt-4 w-full">Generate Cover Letter</button>
+            </form>
+        </div>
+
+        <!-- Section 4: Cover Letter Display -->
+        <div id="cover-letter-section" class="section">
+            <h2 class="text-3xl font-bold text-gray-900 mb-6">Your Custom Cover Letter</h2>
+            <div id="cover-letter-output" class="cover-letter-output">
+                <!-- Cover letter will be displayed here -->
+                Generating your personalized cover letter...
+            </div>
+            <button id="start-over-btn" class="btn-secondary mt-6">Start Over</button>
+        </div>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html>

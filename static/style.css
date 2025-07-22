@@ -1,0 +1,112 @@
+/* Custom styles for the Inter font and overall layout */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f0f4f8; /* Light blue-gray background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+}
+.container {
+    background-color: #ffffff;
+    padding: 32px;
+    border-radius: 16px; /* More rounded corners */
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); /* Softer shadow */
+    max-width: 800px;
+    width: 100%;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 24px; /* Space between sections */
+}
+.section {
+    display: none; /* Hidden by default, shown by JS */
+}
+.section.active {
+    display: block; /* Active section is displayed */
+}
+.btn-primary {
+    background-color: #4f46e5; /* Indigo */
+    color: white;
+    padding: 12px 24px;
+    border-radius: 12px; /* Rounded buttons */
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+    border: none;
+    outline: none;
+}
+.btn-primary:hover {
+    background-color: #4338ca; /* Darker indigo on hover */
+}
+.btn-secondary {
+    background-color: #e0e7ff; /* Light indigo */
+    color: #4f46e5; /* Indigo text */
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    cursor: pointer;
+    border: 1px solid #4f46e5; /* Border for secondary button */
+    outline: none;
+}
+.btn-secondary:hover {
+    background-color: #c7d2fe; /* Lighter indigo on hover */
+}
+input[type="text"],
+input[type="file"],
+textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #cbd5e1; /* Slate-300 border */
+    border-radius: 8px; /* Rounded inputs */
+    margin-top: 8px;
+    margin-bottom: 16px;
+    box-sizing: border-box; /* Include padding in width */
+    font-size: 1rem;
+}
+textarea {
+    min-height: 120px; /* Taller text areas */
+    resize: vertical; /* Allow vertical resizing */
+}
+label {
+    display: block;
+    text-align: left;
+    margin-bottom: 4px;
+    font-weight: 500;
+    color: #334155; /* Slate-700 */
+}
+.card {
+    background-color: #f8fafc; /* Lightest blue-gray */
+    border: 1px solid #e2e8f0; /* Light border */
+    border-radius: 12px;
+    padding: 24px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    text-align: center;
+}
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.08);
+}
+.card-icon {
+    font-size: 3rem; /* Larger icons */
+    margin-bottom: 16px;
+    color: #4f46e5; /* Indigo icon color */
+}
+.cover-letter-output {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 24px;
+    text-align: left;
+    white-space: pre-wrap; /* Preserve whitespace and line breaks */
+    word-wrap: break-word; /* Break long words */
+    min-height: 200px;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #334155;
+}
