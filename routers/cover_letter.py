@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, status, HTTPException
+from fastapi import APIRouter, Form, File, UploadFile, status, HTTPException
 
 from langchain_core.runnables import Runnable
 
@@ -23,10 +23,15 @@ router = APIRouter(
 
 @router.post("/resume")
 # async def analyze_resume(job_description: JobDescription, tone: Tone, resume: UploadFile):
-async def analyze_resume_and_write_cover_letter(job_title: str, job_description: str, tone: Tone, resume: UploadFile):
+async def analyze_resume_and_write_cover_letter(
+    resume: UploadFile = File(...),
+    job_title: str = Form(...), 
+    job_description: str = Form(...), 
+    tone: Tone = Form(...), 
+):
     """ write a cover letter by analyzing the uploaded resume (PDF Only!) and by observing the job description """
 
-    if resume.content_type != "routerlication/pdf": 
+    if resume.content_type != "application/pdf": 
         logger.critical(f"The uploaded file \"{resume.filename}\" is not a PDF!")
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
