@@ -1,6 +1,8 @@
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 from routers import cover_letter
 
@@ -23,11 +25,13 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="AI Resume Analyzer and Cover letter Writer",
 )
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
 @app.get("/")
-def root():
+def root(request: Request):
 
-    return {"message": "welcome home!"}
+    return templates.TemplateResponse("index.html", context={"request": request})
 
 
 app.include_router(cover_letter.router)
