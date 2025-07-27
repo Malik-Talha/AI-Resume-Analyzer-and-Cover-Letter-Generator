@@ -43,8 +43,9 @@ pipx install uv
 ### 1. Clone the repository
 
 ``` bash
-git clone https://github.com/your-username/ai-resume-coverletter.git
-cd ai-resume-coverletter
+git clone https://github.com/Malik-Talha/AI-Resume-Analyzer-and-Cover-Letter-Generator.git
+cd AI-Resume-Analyzer-and-Cover-Letter-Generator/
+
 ```
 ### 2. Install dependencies with uv
 ```
