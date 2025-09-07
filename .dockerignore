@@ -9,6 +9,10 @@ wheels/
 # Virtual environments
 .venv
 
+# files and folders
+*.txt
+assets/
+
 # vscode files
 .vscode/
 
@@ -17,5 +21,3 @@ wheels/
 
 # files (for dev)
 *.pdf
-
-*.txt
