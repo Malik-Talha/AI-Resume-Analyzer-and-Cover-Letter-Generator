@@ -40,6 +40,10 @@ jobs:
           docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG .
           echo "IMAGE=$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG" >> $GITHUB_ENV
 
+      - name: Push Docker image to ECR
+        run: |
+          docker push ${{ env.IMAGE }}
+
       - name: Delete previous image from ECR (except latest)
         run: |
           IMAGE_TAGS=$(aws ecr list-images --repository-name ${{ env.ECR_REPOSITORY }} --query 'imageIds[?imageTag!=`latest`]' --output json)
@@ -47,9 +51,6 @@ jobs:
             aws ecr batch-delete-image --repository-name ${{ env.ECR_REPOSITORY }} --image-ids "$IMAGE_TAGS"
           fi
 
-      - name: Push Docker image to ECR
-        run: |
-          docker push ${{ env.IMAGE }}
 
       - name: Deploy on EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
