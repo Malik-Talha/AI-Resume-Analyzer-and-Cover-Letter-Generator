@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  ai-cover-letter-writer:
+    image: ${ECR_REGISTRY}/ai-cover-letter-writer:latest
+    container_name: ai-cover-letter-writer
+    ports:
+      - "8000:8000"
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
