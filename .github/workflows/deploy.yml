@@ -1,4 +1,3 @@
-
 name: Deploy to EC2 via Docker & ECR
 
 on:
@@ -95,4 +94,3 @@ jobs:
 
             # Start new container(s) with latest image
             docker compose up -d --remove-orphans
-
