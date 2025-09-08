@@ -28,6 +28,7 @@ jobs:
 
   build-and-push-image-to-ecr:
       runs-on: ubuntu-latest
+      needs: checkout-code-and-configure-aws
 
       steps:
       - name: Login to Amazon ECR
@@ -59,9 +60,9 @@ jobs:
 
   deploy-on-ec2-using-ssh:
       runs-on: ubuntu-latest
+      needs: build-and-push-image-to-ecr
 
       steps:          
-
       - name: Deploy on EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
