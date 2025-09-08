@@ -11,7 +11,7 @@ env:
   GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
 jobs:
-  build-and-deploy:
+  checkout-code-and-configure-aws:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,6 +25,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+
+  build-and-push-image-to-ecr:
+      runs-on: ubuntu-latest
+
+      steps:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
@@ -51,6 +56,11 @@ jobs:
             aws ecr batch-delete-image --repository-name ${{ env.ECR_REPOSITORY }} --image-ids "$IMAGE_TAGS"
           fi
 
+
+  deploy-on-ec2-using-ssh:
+      runs-on: ubuntu-latest
+
+      steps:          
 
       - name: Deploy on EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
