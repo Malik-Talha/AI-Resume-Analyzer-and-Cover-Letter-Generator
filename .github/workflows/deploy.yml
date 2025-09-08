@@ -1,3 +1,4 @@
+
 name: Deploy to EC2 via Docker & ECR
 
 on:
@@ -8,35 +9,26 @@ on:
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-  GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
 jobs:
-  checkout-code:
+  build-and-push:
+    name: Build and Push Docker Image to ECR
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-
-  build-and-push-image-to-ecr:
-      runs-on: ubuntu-latest
-      needs: checkout-code
-
-      steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-        
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
 
       - name: Build Docker image
         id: build-image
@@ -44,32 +36,32 @@ jobs:
           IMAGE_TAG=latest
           ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
           docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG .
-          echo "IMAGE=$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG" >> $GITHUB_ENV
+          echo "ECR_REGISTRY=$ECR_REGISTRY" >> $GITHUB_ENV
 
       - name: Push Docker image to ECR
         run: |
-          docker push ${{ env.IMAGE }}
+          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:latest
 
-      - name: Delete previous image from ECR (except latest)
+      - name: Delete previous images from ECR (except latest)
         run: |
           IMAGE_TAGS=$(aws ecr list-images --repository-name ${{ env.ECR_REPOSITORY }} --query 'imageIds[?imageTag!=`latest`]' --output json)
           if [ "$IMAGE_TAGS" != "[]" ]; then
             aws ecr batch-delete-image --repository-name ${{ env.ECR_REPOSITORY }} --image-ids "$IMAGE_TAGS"
           fi
 
+      - name: Export ECR registry for next job
+        run: echo "ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}" >> $GITHUB_OUTPUT
+        id: export-ecr
 
-  deploy-on-ec2-using-ssh:
-      runs-on: ubuntu-latest
-      needs: build-and-push-image-to-ecr
+    outputs:
+      ecr_registry: ${{ steps.login-ecr.outputs.registry }}
 
-      steps:          
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+  deploy:
+    name: Deploy on EC2 via SSH
+    runs-on: ubuntu-latest
+    needs: build-and-push
 
+    steps:
       - name: Deploy on EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -77,30 +69,23 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT }}
+          envs: AWS_REGION,ECR_REPOSITORY
           script: |
             set -e
-            export AWS_REGION=${{ env.AWS_REGION }}
-            export ECR_REGISTRY=${{ needs.build-and-push-image-to-ecr.outputs.ecr_registry }}
-            export ECR_REPOSITORY=${{ env.ECR_REPOSITORY }}
-            export IMAGE_TAG=latest
-
+            ECR_REGISTRY="${{ needs.build-and-push.outputs.ecr_registry }}"
+            IMAGE_TAG=latest
 
             # Authenticate Docker to ECR
             aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
 
-            # Remove old image(s) except latest
+            # Remove old images except latest
             docker images "$ECR_REGISTRY/$ECR_REPOSITORY" --format "{{.Repository}}:{{.Tag}}" | grep -v ":latest" | xargs -r docker rmi || true
 
             # Pull latest image
             docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
             # Go to app directory (update path if needed)
-            cd /home/ubuntu/AI-Resume-Analyzer-and-Cover-Letter-Generator
-
-
-            # Update docker-compose.yml image reference if needed (optional, if using env var in compose file)
-            export ECR_REGISTRY=$ECR_REGISTRY
-            export ECR_REPOSITORY=$ECR_REPOSITORY
+            cd /home/ubuntu/ai-cover-letter-writer
 
             # Stop and remove old containers
             docker compose down || true
