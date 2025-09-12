@@ -66,15 +66,21 @@ jobs:
           else
             echo "Less than 4 images, no cleanup needed."
           fi
+      
+      # step 6 configure kubectl
+      - name: Configure Kubernetes client
+        uses: silverlyra/setup-aws-eks@v0.1
+        with:
+          cluster: ${{ env.EKS_CLUSTER_NAME }}
 
-      # Step 6: Create/Update the Kubernetes secret for API keys
+      # Step 7: Create/Update the Kubernetes secret for API keys
       # The --dry-run=client -o yaml pipes the output to kubectl apply,
       # making this command idempotent (safe to run multiple times).
       - name: Create or update Kubernetes secret
         run: |
           kubectl create secret generic fastapi-secrets --from-literal=GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }} --dry-run=client -o yaml | kubectl apply -f -
       
-      # Step 7: Deploy the application to EKS
+      # Step 8: Deploy the application to EKS
       - name: Deploy to EKS
         run: |
           # Use 'sed' to update the deployment file with the new image tag
