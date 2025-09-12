@@ -14,20 +14,33 @@ spec:
     spec:
       containers:
       - name: resume-analyzer
-        image: resume-analyzer:latest
-        imagePullPolicy: Never
+        image: ai-resume-analyzer:latest  # This placeholder will be replaced by the pipeline
+        imagePullPolicy: Always # Kubernetes will always pull the latest image from ECR
         env:
-        - name: GOOGLE_API_KEY # The name of the environment variable in the container
+        - name: GOOGLE_API_KEY
           valueFrom:
             secretKeyRef:
-              name: mysecrets # The name of the Secret
+              name: fastapi-secrets
               key: GOOGLE_API_KEY
+        ports:
+        - containerPort: 8000
         resources:
           limits:
             memory: "300Mi"
             cpu: "200m"
-        ports:
-        - containerPort: 8000
+        # Health checks to ensure the application is ready and healthy
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
 ---
 apiVersion: v1
 kind: Service
@@ -37,6 +50,6 @@ spec:
   selector:
     app: resume-analyzer
   ports:
-  - port: 5000  # port to expose 
-    targetPort: 8000 # port the container is listening on
-
+  - port: 8000         # The service's exposed port
+    targetPort: 8000   # The container port to forward traffic to
+    protocol: TCP

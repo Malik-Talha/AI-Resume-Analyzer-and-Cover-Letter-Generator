@@ -1,89 +1,88 @@
-name: Deploy to EC2 via Docker & ECR
+name: CI/CD Pipeline for FastAPI on AWS EKS
 
+# Trigger the workflow on pushes to the 'main' branch
 on:
   push:
     branches:
       - main
 
-env:
-  AWS_REGION: ${{ secrets.AWS_REGION }}
-  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+# Set permissions for the job, crucial for OIDC authentication
+permissions:
+  id-token: write
+  contents: read
 
+env:
+  # Environment variables accessible to all steps in the job
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECR_REPOSITORY: ${{ secrets.AWS_ECR_REPOSITORY }}
+  EKS_CLUSTER_NAME: ${{ secrets.AWS_EKS_CLUSTER_NAME }}
+  
 jobs:
-  build-and-push:
-    name: Build and Push Docker Image to ECR
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout the repository code
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Step 2: Configure AWS credentials using OIDC for secure access
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
+      # Step 3: Log in to AWS ECR
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build Docker image
-        id: build-image
+      # Step 4: Build, tag, and push the Docker image to ECR
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          IMAGE_TAG=latest
-          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
-          docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG .
-          echo "ECR_REGISTRY=$ECR_REGISTRY" >> $GITHUB_ENV
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      - name: Push Docker image to ECR
+      # Step 5: Clean up old Docker images in ECR, keeping the latest 3
+      - name: ECR image cleanup
         run: |
-          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:latest
+          # Get list of image digests, sorted by push date
+          image_digests=$(aws ecr describe-images --repository-name $ECR_REPOSITORY \
+            --query 'sort_by(imageDetails,& imagePushedAt)[].imageDigest' --output text)
 
-      - name: Delete previous images from ECR (except latest)
-        run: |
-          IMAGE_TAGS=$(aws ecr list-images --repository-name ${{ env.ECR_REPOSITORY }} --query 'imageIds[?imageTag!=`latest`]' --output json)
-          if [ "$IMAGE_TAGS" != "[]" ]; then
-            aws ecr batch-delete-image --repository-name ${{ env.ECR_REPOSITORY }} --image-ids "$IMAGE_TAGS"
+          # Check if there are more than 3 images
+          num_images=$(echo $image_digests | wc -w)
+          if [ $num_images -gt 3 ]; then
+            digests_to_delete=$(echo $image_digests | cut -d' ' -f4-)
+            echo "Deleting old images with digests: $digests_to_delete"
+            aws ecr batch-delete-image --repository-name $ECR_REPOSITORY --image-ids imageDigest=$digests_to_delete || true
+          else
+            echo "Less than 4 images, no cleanup needed."
           fi
-
-      - name: Export ECR registry for next job
-        run: echo "ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}" >> $GITHUB_OUTPUT
-        id: export-ecr
-
-    outputs:
-      ecr_registry: ${{ steps.login-ecr.outputs.registry }}
-
-  deploy:
-    name: Deploy on EC2 via Self-Hosted Runner
-    runs-on: self-hosted # Changed to run on a self-hosted runner
-    needs: build-and-push
-
-    steps:
-      - name: Deploy on EC2
-        run: |
-          set -e
-          ECR_REGISTRY="${{ needs.build-and-push.outputs.ecr_registry }}"
-          IMAGE_TAG=latest
           
-          # Authenticate Docker to ECR
-          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+      # Step 6: Update the Kubeconfig for the EKS cluster
+      - name: Update kubeconfig
+        uses: aws-actions/amazon-eks-login@v2
+        with:
+          cluster-name: ${{ env.EKS_CLUSTER_NAME }}
 
-          # Remove old images except latest
-          docker images "$ECR_REGISTRY/$ECR_REPOSITORY" --format "{{.Repository}}:{{.Tag}}" | grep -v ":latest" | xargs -r docker rmi || true
-
-          # Pull latest image
-          docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
-          # Go to app directory (update path if needed)
-          cd /home/ubuntu/ai-cover-letter-writer
-
-          # Stop and remove old containers
-          docker compose down || true
-
-          # Remove any dangling images
-          docker image prune -f
-
-          # Start new container(s) with latest image
-          docker compose up -d --remove-orphans
+      # Step 7: Create/Update the Kubernetes secret for API keys
+      - name: Create or update Kubernetes secret
+        run: |
+          # The --dry-run=client -o yaml pipes the output to kubectl apply,
+          # making this command idempotent (safe to run multiple times).
+          kubectl create secret generic fastapi-secrets --from-literal=GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }} --dry-run=client -o yaml | kubectl apply -f -
+      
+      # Step 8: Deploy the application to EKS
+      - name: Deploy to EKS
+        run: |
+          # Use 'sed' to update the deployment file with the new image tag
+          sed -i "s|<your-ecr-repo-name>:latest|$ECR_REPOSITORY:latest|g" deployment.yaml
+          
+          # Apply the changes to the Kubernetes cluster
+          kubectl apply -f deployment.yaml
