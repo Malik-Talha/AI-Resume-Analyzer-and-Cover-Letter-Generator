@@ -32,6 +32,8 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+          # The following line is crucial for EKS to configure kubectl
+          eks-cluster-name: ${{ env.EKS_CLUSTER_NAME }} 
 
       # Step 3: Log in to AWS ECR
       - name: Login to Amazon ECR
@@ -64,21 +66,15 @@ jobs:
           else
             echo "Less than 4 images, no cleanup needed."
           fi
-          
-      # Step 6: Update the Kubeconfig for the EKS cluster
-      - name: Update kubeconfig
-        uses: aws-actions/amazon-eks-login@v2
-        with:
-          cluster-name: ${{ env.EKS_CLUSTER_NAME }}
 
-      # Step 7: Create/Update the Kubernetes secret for API keys
+      # Step 6: Create/Update the Kubernetes secret for API keys
       - name: Create or update Kubernetes secret
         run: |
           # The --dry-run=client -o yaml pipes the output to kubectl apply,
           # making this command idempotent (safe to run multiple times).
           kubectl create secret generic fastapi-secrets --from-literal=GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }} --dry-run=client -o yaml | kubectl apply -f -
       
-      # Step 8: Deploy the application to EKS
+      # Step 7: Deploy the application to EKS
       - name: Deploy to EKS
         run: |
           # Use 'sed' to update the deployment file with the new image tag
