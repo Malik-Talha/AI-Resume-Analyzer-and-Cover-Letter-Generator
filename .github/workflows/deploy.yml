@@ -68,10 +68,10 @@ jobs:
           fi
 
       # Step 6: Create/Update the Kubernetes secret for API keys
+      # The --dry-run=client -o yaml pipes the output to kubectl apply,
+      # making this command idempotent (safe to run multiple times).
       - name: Create or update Kubernetes secret
         run: |
-          # The --dry-run=client -o yaml pipes the output to kubectl apply,
-          # making this command idempotent (safe to run multiple times).
           kubectl create secret generic fastapi-secrets --from-literal=GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }} --dry-run=client -o yaml | kubectl apply -f -
       
       # Step 7: Deploy the application to EKS
