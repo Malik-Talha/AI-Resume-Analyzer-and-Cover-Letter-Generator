@@ -33,7 +33,7 @@ def root(request: Request):
 
     return templates.TemplateResponse("index.html", context={"request": request})
 
-@app.get("/test"):
+@app.get("/test")
 def test():
 
     return {"test": "CI/CD is working. Test successfull!"}
