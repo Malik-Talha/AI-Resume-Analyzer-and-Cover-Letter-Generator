@@ -33,6 +33,11 @@ def root(request: Request):
 
     return templates.TemplateResponse("index.html", context={"request": request})
 
+@app.get("/test"):
+def test():
+
+    return {"test": "CI/CD is working. Test successfull!"}
+
 
 app.include_router(cover_letter.router)
 
