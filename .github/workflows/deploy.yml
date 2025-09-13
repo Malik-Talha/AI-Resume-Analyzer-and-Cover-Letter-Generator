@@ -83,6 +83,8 @@ jobs:
 
           # Restart the deployment in order to apply the latest image built in this workflow
           # The following command RESTARTS all the deployments in the cluster
-          kubectl rollout restart deploy
+          # kubectl rollout restart deploy
           # To restart only specific deployments, use the following
           # kubectl rollout restart deployment <deployment name>
+          # force restart deployments
+          kubectl rollout restart -f deployment.yaml
