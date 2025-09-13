@@ -22,25 +22,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the repository code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Configure AWS credentials using OIDC for secure access
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
-          # The following line is crucial for EKS to configure kubectl
-          eks-cluster-name: ${{ env.EKS_CLUSTER_NAME }} 
+          eks-cluster-name: ${{ env.EKS_CLUSTER_NAME }}
 
-      # Step 3: Log in to AWS ECR
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
-
-      # Step 4: Build, tag, and push the Docker image to ECR
+        
       - name: Build and push Docker image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -50,40 +45,36 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      # Step 5: Clean up old Docker images in ECR, keeping the latest 3
       - name: ECR image cleanup
         run: |
-          # Get list of image digests, sorted by push date
-          image_digests=$(aws ecr describe-images --repository-name $ECR_REPOSITORY \
-            --query 'sort_by(imageDetails,& imagePushedAt)[].imageDigest' --output text)
-
-          # Check if there are more than 3 images
-          num_images=$(echo $image_digests | wc -w)
-          if [ $num_images -gt 3 ]; then
-            digests_to_delete=$(echo $image_digests | cut -d' ' -f4-)
-            echo "Deleting old images with digests: $digests_to_delete"
-            aws ecr batch-delete-image --repository-name $ECR_REPOSITORY --image-ids imageDigest=$digests_to_delete || true
+          images_to_delete=$(aws ecr describe-images --repository-name $ECR_REPOSITORY \
+            --query 'imageDetails[?!contains(imageTags, `latest`)].imageDigest' \
+            --output text)
+          if [ -n "$images_to_delete" ]; then
+            echo "Images without 'latest' tag to delete: $images_to_delete"
+            image_ids=$(echo $images_to_delete | tr ' ' '\n' | sed 's/^/imageDigest=/')
+            aws ecr batch-delete-image --repository-name $ECR_REPOSITORY --image-ids $image_ids || true
+            echo "Cleanup complete."
           else
-            echo "Less than 4 images, no cleanup needed."
+            echo "No images to clean up."
           fi
       
-      # step 6 configure kubectl
       - name: Configure Kubernetes client
         run: | 
-            aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }} 
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }} 
 
-      # Step 7: Create/Update the Kubernetes secret for API keys
-      # The --dry-run=client -o yaml pipes the output to kubectl apply,
-      # making this command idempotent (safe to run multiple times).
       - name: Create or update Kubernetes secret
         run: |
           kubectl create secret generic fastapi-secrets --from-literal=GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }} --dry-run=client -o yaml | kubectl apply -f -
       
-      # Step 8: Deploy the application to EKS
       - name: Deploy to EKS
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
+          FULL_IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          echo "Updating deployment file with image: $FULL_IMAGE_URI"
           # Use 'sed' to update the deployment file with the new image tag
-          sed -i "s|<your-ecr-repo-name>:latest|$ECR_REPOSITORY:latest|g" deployment.yaml
+          sed -i "s|<your-ecr-repo-name>:latest|$FULL_IMAGE_URI|g" deployment.yaml
           
           # Apply the changes to the Kubernetes cluster
           kubectl apply -f deployment.yaml
