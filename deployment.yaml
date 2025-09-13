@@ -34,6 +34,7 @@ kind: Service
 metadata:
   name: resume-analyzer
 spec:
+  type: LoadBalancer 
   selector:
     app: resume-analyzer
   ports:
