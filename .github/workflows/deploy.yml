@@ -73,7 +73,13 @@ jobs:
           kubectl create secret generic fastapi-secrets --from-literal=GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}  --dry-run=client -o yaml | kubectl apply -f - 
       
       - name: Deploy to EKS
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          
+          FULL_IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          echo "Updating deployment file with image: $FULL_IMAGE_URI"
+          # Use 'sed' to update the deployment file with the new image tag
+          sed -i "s|maliktalha27/ai-resume-analyzer|$FULL_IMAGE_URI|g" deployment.yaml
+
           # Apply the changes to the Kubernetes cluster
           kubectl apply -f deployment.yaml
