@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: resume-analyzer
-        image: maliktalha27/ai-resume-analyzer  # This placeholder will be replaced by the pipeline
+        image: 984834013599.dkr.ecr.us-east-1.amazonaws.com/maliktalha27/ai-resume-analyzer:latest  # This placeholder will be replaced by the pipeline
         imagePullPolicy: Always # Kubernetes will always pull the latest image from ECR
         env:
         - name: GOOGLE_API_KEY
