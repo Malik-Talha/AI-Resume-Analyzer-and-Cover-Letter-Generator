@@ -81,5 +81,8 @@ jobs:
           # Use 'sed' to update the deployment file with the new image tag
           sed -i "s|maliktalha27/ai-resume-analyzer|$FULL_IMAGE_URI|g" deployment.yaml
 
-          # Apply the changes to the Kubernetes cluster
-          kubectl apply -f deployment.yaml
+          # Restart the deployment in order to apply the latest image built in this workflow
+          # The following command RESTARTS all the deployments in the cluster
+          kubectl rollout restart deploy
+          # To restart only specific deployments, use the following
+          # kubectl rollout restart deployment <deployment name>
