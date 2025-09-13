@@ -46,13 +46,19 @@ jobs:
 
       - name: ECR image cleanup
         run: |
+          echo "Starting ECR image cleanup..."
+          # Get all image digests that do not have the 'latest' tag
           images_to_delete=$(aws ecr describe-images --repository-name $ECR_REPOSITORY \
-            --query 'imageDetails[?!contains(imageTags, `latest`)].imageDigest' \
+            --query 'imageDetails[?!(contains(imageTags, `latest`))].imageDigest' \
             --output text)
+          
           if [ -n "$images_to_delete" ]; then
-            echo "Images without 'latest' tag to delete: $images_to_delete"
-            image_ids=$(echo $images_to_delete | tr ' ' '\n' | sed 's/^/imageDigest=/')
-            aws ecr batch-delete-image --repository-name $ECR_REPOSITORY --image-ids $image_ids || true
+            echo "Images to delete: $images_to_delete"
+            # Loop through each image digest and delete it.
+            # The '|| true' prevents the workflow from failing if an image is already gone.
+            for digest in $images_to_delete; do
+              aws ecr batch-delete-image --repository-name $ECR_REPOSITORY --image-ids imageDigest=$digest || true
+            done
             echo "Cleanup complete."
           else
             echo "No images to clean up."
@@ -64,7 +70,7 @@ jobs:
 
       - name: Create or update Kubernetes secret
         run: |
-          kubectl create secret generic fastapi-secrets --from-literal=GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }} --validate=false --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create secret generic fastapi-secrets --from-literal=GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}  --dry-run=client -o yaml | kubectl apply -f - 
       
       - name: Deploy to EKS
         env:
@@ -73,7 +79,7 @@ jobs:
           FULL_IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:latest"
           echo "Updating deployment file with image: $FULL_IMAGE_URI"
           # Use 'sed' to update the deployment file with the new image tag
-          sed -i "s|<your-ecr-repo-name>:latest|$FULL_IMAGE_URI|g" deployment.yaml
+          sed -i "s|maliktalha27/ai-resume-analyzer|$FULL_IMAGE_URI|g" deployment.yaml
           
           # Apply the changes to the Kubernetes cluster
           kubectl apply -f deployment.yaml
